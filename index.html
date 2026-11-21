@@ -337,9 +337,18 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
                 <!-- Device Details -->
                 <div class="p-5 rounded-2xl bg-slate-900/80 border border-slate-700/80 space-y-2">
-                    <span class="text-[11px] font-mono text-cyan-400 uppercase tracking-wider font-semibold">Kernel Hardware Identity</span>
-                    <div class="text-base font-bold text-slate-300" id="pulse-device-model">No Device Attached</div>
-                    <div class="text-xs font-mono text-slate-400">Motherboard Serial: <span id="pulse-serial-no" class="text-slate-400">Waiting for USB...</span></div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-[11px] font-mono text-cyan-400 uppercase tracking-wider font-semibold">Kernel Hardware Identity</span>
+                        <select id="select-device-preset" onchange="updateDevicePreset(this.value)" class="text-[10px] px-2 py-0.5 rounded bg-slate-800 border border-slate-600 text-slate-300 focus:outline-none focus:border-cyan-400">
+                            <option value="auto">Auto-Detect Device</option>
+                            <option value="Samsung Galaxy S24 Ultra">Samsung Galaxy S24 Ultra</option>
+                            <option value="OnePlus 12 5G">OnePlus 12 5G</option>
+                            <option value="Apple iPhone 15 Pro">Apple iPhone 15 Pro</option>
+                            <option value="Google Pixel 8 Pro">Google Pixel 8 Pro</option>
+                        </select>
+                    </div>
+                    <div class="text-base font-bold text-slate-200" id="pulse-device-model">No Device Attached</div>
+                    <div class="text-xs font-mono text-slate-400">Motherboard Serial: <span id="pulse-serial-no" class="text-slate-300 font-semibold">Waiting for USB...</span></div>
                     <div class="text-xs text-slate-400">Linux Sysfs Node: <span class="font-mono text-cyan-300">/sys/class/power_supply/battery</span></div>
                 </div>
 
@@ -460,14 +469,14 @@
                             <span class="text-[10px] text-slate-400">Quick Samples:</span>
                             <button onclick="fillGstin('27AAPFU0955K1ZV')" class="text-[10px] font-mono text-cyan-400 underline">Reliance Retail</button>
                             <button onclick="fillGstin('29AABCC1234D1Z5')" class="text-[10px] font-mono text-cyan-400 underline">Croma Digital</button>
-                            <button onclick="fillGstin('27AAPFU0955K1Z9')" class="text-[10px] font-mono text-red-400 underline">Fake / Invalid</button>
+                            <button onclick="fillGstin('27AAPFU0955K1Z9')" class="text-[10px] font-mono text-amber-400 underline">Checksum Mismatch Demo</button>
                         </div>
                     </div>
 
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-semibold text-slate-300 mb-1">Device Serial / IMEI</label>
-                            <input id="input-serial" type="text" value="" placeholder="e.g. 990012384918230" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-600 text-white font-mono text-xs">
+                            <input id="input-serial" type="text" value="" placeholder="Enter 15-Digit IMEI / Hardware Serial" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-600 text-white font-mono text-xs">
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-slate-300 mb-1">Invoice Number</label>
@@ -533,7 +542,11 @@
             <!-- MAP & HUBS LIST -->
             <div class="space-y-3">
                 <!-- Map Layer Switcher & City Selector -->
-                <div class="flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl bg-slate-900/90 border border-slate-700/80 text-xs">
+                <div class="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-slate-900/90 border border-slate-700/80 text-xs">
+                    <div class="flex items-center gap-2 w-full sm:w-auto">
+                        <span class="text-slate-300 font-semibold flex items-center gap-1.5"><i class="fa-solid fa-phone text-emerald-400"></i> Customer Phone:</span>
+                        <input id="input-customer-phone" type="tel" placeholder="+91 98XXXXXXXX" maxlength="15" class="px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-600 text-white font-mono text-xs focus:outline-none focus:border-cyan-400 w-44">
+                    </div>
                     <div class="flex items-center gap-2">
                         <span class="text-slate-400 font-semibold"><i class="fa-solid fa-map mr-1 text-cyan-400"></i> Map Source:</span>
                         <button onclick="switchMapLayer('gmaps')" id="btn-layer-gmaps" class="px-3 py-1 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold transition-all">
@@ -628,6 +641,17 @@
 
         // ==========================================
         // 3. SPECTRACE PULSE: REAL WEBUSB + BACKEND INTEGRATION
+        function updateDevicePreset(val) {
+            const modelEl = document.getElementById('pulse-device-model');
+            if (!modelEl) return;
+            if (val === 'auto') {
+                const detected = navigator.userAgentData?.platform ? `${navigator.userAgentData.platform} Host` : (navigator.platform || "Connected Hardware");
+                modelEl.innerText = detected;
+            } else {
+                modelEl.innerText = val;
+            }
+            logKernel(`[DEVICE TARGET] Selected device model: ${modelEl.innerText}`);
+        }
         // ==========================================
         const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') 
             ? 'http://127.0.0.1:8000/api' 
@@ -731,6 +755,11 @@
                 return;
             }
 
+            const city = document.getElementById('select-city')?.value || 'mumbai';
+            const cityInfo = cityData[city] || cityData.mumbai;
+            const assignedHub = cityInfo.hubs[0];
+            const currentHealth = parseInt(document.getElementById('pulse-health-badge')?.innerText) || 78;
+
             if (API_BASE) {
                 try {
                     const res = await fetch(`${API_BASE}/claim/submit`, {
@@ -741,9 +770,9 @@
                             device_model: model,
                             gstin: gstin,
                             invoice_no: inv,
-                            battery_health: 78,
-                            hub_name: "QuickFix BKC Micro-Hub",
-                            eta_mins: 11
+                            battery_health: currentHealth,
+                            hub_name: assignedHub.name,
+                            eta_mins: parseInt(assignedHub.eta) || 15
                         })
                     });
 
@@ -994,48 +1023,48 @@ function fillGstin(val) {
 
         const cityData = {
             mumbai: {
-                name: "Mumbai BKC",
+                name: "Mumbai BKC & Suburbs",
                 coords: [19.0680, 72.8690],
                 hubs: [
-                    { name: "QuickFix BKC Micro-Hub", lat: 19.0680, lng: 72.8690, dist: "1.2 km", eta: "11 Mins", cert: "Certified Level 3" },
-                    { name: "Bandra Electronics Lab", lat: 19.0550, lng: 72.8390, dist: "3.4 km", eta: "19 Mins", cert: "OEM Partner" },
-                    { name: "Kurla Hardware Collective", lat: 19.0720, lng: 72.8890, dist: "5.1 km", eta: "26 Mins", cert: "Micro-Franchise" }
+                    { name: "QuickFix BKC Micro-Hub", lat: 19.0680, lng: 72.8690, dist: "1.2 km", eta: "11 Mins", cert: "Certified Level 3", address: "G-Block, BKC, Bandra Kurla Complex, Mumbai 400051", phone: "+91 22 6140 8820" },
+                    { name: "Bandra Electronics Lab", lat: 19.0550, lng: 72.8390, dist: "3.4 km", eta: "19 Mins", cert: "OEM Partner", address: "Hill Road, Bandra West, Mumbai 400050", phone: "+91 22 2640 1928" },
+                    { name: "Kurla Hardware Collective", lat: 19.0720, lng: 72.8890, dist: "5.1 km", eta: "26 Mins", cert: "Micro-Franchise", address: "LBS Marg, Kurla West, Mumbai 400070", phone: "+91 22 2503 4410" }
                 ]
             },
             delhi: {
-                name: "Delhi Connaught Place",
+                name: "Delhi Connaught Place & NCR",
                 coords: [28.6315, 77.2167],
                 hubs: [
-                    { name: "CP Hardware Station", lat: 28.6320, lng: 77.2180, dist: "0.8 km", eta: "9 Mins", cert: "Certified Level 3" },
-                    { name: "Nehru Place Tech Depot", lat: 28.5490, lng: 77.2520, dist: "4.8 km", eta: "21 Mins", cert: "OEM Hub" },
-                    { name: "Lajpat Nagar Care Node", lat: 28.5700, lng: 77.2380, dist: "3.2 km", eta: "16 Mins", cert: "Micro-Franchise" }
+                    { name: "CP Hardware Station", lat: 28.6320, lng: 77.2180, dist: "0.8 km", eta: "9 Mins", cert: "Certified Level 3", address: "Barakhamba Road, Connaught Place, New Delhi 110001", phone: "+91 11 4350 2201" },
+                    { name: "Nehru Place Tech Depot", lat: 28.5490, lng: 77.2520, dist: "4.8 km", eta: "21 Mins", cert: "OEM Hub", address: "Vishal Bhawan, Nehru Place, New Delhi 110019", phone: "+91 11 2641 5590" },
+                    { name: "Lajpat Nagar Care Node", lat: 28.5700, lng: 77.2380, dist: "3.2 km", eta: "16 Mins", cert: "Micro-Franchise", address: "Central Market, Lajpat Nagar II, New Delhi 110024", phone: "+91 11 2981 7720" }
                 ]
             },
             bangalore: {
-                name: "Bengaluru Koramangala",
+                name: "Bengaluru Tech Corridor",
                 coords: [12.9352, 77.6245],
                 hubs: [
-                    { name: "Koramangala Silicon Care", lat: 12.9340, lng: 77.6250, dist: "0.9 km", eta: "10 Mins", cert: "Certified Level 3" },
-                    { name: "HSR Tech Mesh Station", lat: 12.9120, lng: 77.6440, dist: "3.1 km", eta: "18 Mins", cert: "OEM Partner" },
-                    { name: "Indiranagar Device Lab", lat: 12.9780, lng: 77.6400, dist: "5.4 km", eta: "25 Mins", cert: "Micro-Franchise" }
+                    { name: "Koramangala Silicon Care", lat: 12.9340, lng: 77.6250, dist: "0.9 km", eta: "10 Mins", cert: "Certified Level 3", address: "80ft Road, 4th Block Koramangala, Bengaluru 560034", phone: "+91 80 4120 3390" },
+                    { name: "HSR Tech Mesh Station", lat: 12.9120, lng: 77.6440, dist: "3.1 km", eta: "18 Mins", cert: "OEM Partner", address: "27th Main, Sector 1 HSR Layout, Bengaluru 560102", phone: "+91 80 2572 8840" },
+                    { name: "Indiranagar Device Lab", lat: 12.9780, lng: 77.6400, dist: "5.4 km", eta: "25 Mins", cert: "Micro-Franchise", address: "100ft Road, HAL 2nd Stage, Indiranagar, Bengaluru 560038", phone: "+91 80 4150 9920" }
                 ]
             },
             hyderabad: {
-                name: "Hyderabad Hitec City",
+                name: "Hyderabad Cyberabad Corridor",
                 coords: [17.4474, 78.3762],
                 hubs: [
-                    { name: "Cyberabad Device Hub", lat: 17.4460, lng: 78.3780, dist: "1.0 km", eta: "12 Mins", cert: "Certified Level 3" },
-                    { name: "Madhapur Micro-Station", lat: 17.4480, lng: 78.3900, dist: "2.8 km", eta: "17 Mins", cert: "OEM Partner" },
-                    { name: "Gachibowli Care Node", lat: 17.4400, lng: 78.3480, dist: "4.2 km", eta: "22 Mins", cert: "Micro-Franchise" }
+                    { name: "Cyberabad Device Hub", lat: 17.4460, lng: 78.3780, dist: "1.0 km", eta: "12 Mins", cert: "Certified Level 3", address: "Mindspace IT Park, Hitec City, Hyderabad 500081", phone: "+91 40 6690 1200" },
+                    { name: "Madhapur Micro-Station", lat: 17.4480, lng: 78.3900, dist: "2.8 km", eta: "17 Mins", cert: "OEM Partner", address: "Kavuri Hills, Madhapur, Hyderabad 500033", phone: "+91 40 4010 3340" },
+                    { name: "Gachibowli Care Node", lat: 17.4400, lng: 78.3480, dist: "4.2 km", eta: "22 Mins", cert: "Micro-Franchise", address: "Financial District, Gachibowli, Hyderabad 500032", phone: "+91 40 4850 7710" }
                 ]
             },
             pune: {
-                name: "Pune Viman Nagar",
+                name: "Pune Metro Hubs",
                 coords: [18.5679, 73.9143],
                 hubs: [
-                    { name: "Viman Nagar Rapid Care", lat: 18.5660, lng: 73.9130, dist: "1.1 km", eta: "11 Mins", cert: "Certified Level 3" },
-                    { name: "Koregaon Park Tech Node", lat: 18.5360, lng: 73.8940, dist: "3.9 km", eta: "20 Mins", cert: "OEM Partner" },
-                    { name: "Kalyani Nagar Device Hub", lat: 18.5490, lng: 73.9030, dist: "2.7 km", eta: "15 Mins", cert: "Micro-Franchise" }
+                    { name: "Viman Nagar Rapid Care", lat: 18.5660, lng: 73.9130, dist: "1.1 km", eta: "11 Mins", cert: "Certified Level 3", address: "Phoenix Road, Viman Nagar, Pune 411014", phone: "+91 20 6620 4400" },
+                    { name: "Koregaon Park Tech Node", lat: 18.5360, lng: 73.8940, dist: "3.9 km", eta: "20 Mins", cert: "OEM Partner", address: "North Main Road, Koregaon Park, Pune 411001", phone: "+91 20 2615 2290" },
+                    { name: "Kalyani Nagar Device Hub", lat: 18.5490, lng: 73.9030, dist: "2.7 km", eta: "15 Mins", cert: "Micro-Franchise", address: "East Avenue, Kalyani Nagar, Pune 411006", phone: "+91 20 4100 8830" }
                 ]
             }
         };
@@ -1128,34 +1157,47 @@ function fillGstin(val) {
 
             data.hubs.forEach((h, idx) => {
                 const gmapsNavUrl = `https://www.google.com/maps/dir/?api=1&destination=${h.lat},${h.lng}`;
+                const telClean = h.phone.replace(/[^0-9+]/g, '');
                 
                 const marker = L.marker([h.lat, h.lng]).addTo(map).bindPopup(`
-                    <div class="p-1 space-y-1 text-xs">
+                    <div class="p-1.5 space-y-1.5 text-xs min-w-[210px]">
                         <strong class="text-white text-sm">${h.name}</strong>
-                        <div class="text-slate-300">${h.cert} • ETA: ${h.eta}</div>
-                        <div class="text-emerald-400 font-bold">Distance: ${h.dist}</div>
-                        <a href="${gmapsNavUrl}" target="_blank" class="inline-block mt-2 px-2.5 py-1 rounded bg-cyan-600 text-white font-bold text-[11px] hover:bg-cyan-500">
-                            Navigate in Google Maps ↗
-                        </a>
+                        <div class="text-slate-300 text-[11px]"><i class="fa-solid fa-location-dot text-cyan-400 mr-1"></i>${h.address}</div>
+                        <div class="text-slate-300 text-[11px]">${h.cert} • ETA: <strong class="text-emerald-400">${h.eta}</strong> (${h.dist})</div>
+                        <div class="pt-1.5 flex items-center gap-2">
+                            <a href="tel:${telClean}" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] flex items-center gap-1">
+                                <i class="fa-solid fa-phone text-[9px]"></i> Call Hotline
+                            </a>
+                            <a href="${gmapsNavUrl}" target="_blank" class="px-2.5 py-1 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-[11px]">
+                                Navigate ↗
+                            </a>
+                        </div>
                     </div>
                 `);
                 hubMarkers.push(marker);
 
                 const hubItem = document.createElement('div');
-                hubItem.className = `p-3 rounded-xl ${idx === 0 ? 'bg-slate-800/80 border border-cyan-500/40' : 'bg-slate-800/50 border border-slate-700/80'} flex justify-between items-center hover:border-cyan-400/50 transition-all cursor-pointer`;
+                hubItem.className = `p-3.5 rounded-xl ${idx === 0 ? 'bg-slate-800/90 border border-cyan-500/50 shadow-lg shadow-cyan-500/10' : 'bg-slate-800/60 border border-slate-700/80'} flex justify-between items-center hover:border-cyan-400 transition-all cursor-pointer`;
                 hubItem.onclick = () => {
                     map.setView([h.lat, h.lng], 15);
                     marker.openPopup();
                 };
                 hubItem.innerHTML = `
-                    <div>
+                    <div class="space-y-1">
                         <div class="text-xs font-bold text-white flex items-center gap-1.5">
                             ${h.name} ${idx === 0 ? '<span class="text-[9px] px-1.5 py-0.2 bg-emerald-500/20 text-emerald-300 rounded font-bold">NEAREST</span>' : ''}
                         </div>
-                        <div class="text-[11px] text-slate-400">ETA: ${h.eta} • ${h.cert}</div>
+                        <div class="text-[11px] text-slate-400"><i class="fa-solid fa-location-dot text-cyan-400 mr-1"></i>${h.address}</div>
+                        <div class="text-[11px] text-slate-300 flex items-center gap-2.5 pt-0.5">
+                            <span>ETA: <strong class="text-emerald-400">${h.eta}</strong> • ${h.cert}</span>
+                            <a href="tel:${telClean}" onclick="event.stopPropagation()" class="px-2 py-0.5 rounded bg-slate-700/90 hover:bg-emerald-600/80 text-cyan-300 hover:text-white font-mono text-[10px] border border-cyan-500/30 flex items-center gap-1 transition-all">
+                                <i class="fa-solid fa-phone text-[9px]"></i> ${h.phone}
+                            </a>
+                        </div>
                     </div>
-                    <div class="text-right">
-                        <span class="text-xs font-mono font-bold text-cyan-400">${h.dist}</span>
+                    <div class="text-right pl-3">
+                        <span class="text-xs font-mono font-bold text-cyan-400 block">${h.dist}</span>
+                        <span class="text-[10px] text-emerald-400 font-semibold">Available</span>
                     </div>
                 `;
                 listEl.appendChild(hubItem);
@@ -1171,23 +1213,51 @@ function fillGstin(val) {
 
         function triggerBecknDispatch() {
             logKernel("[ONDC BROADCAST] Broadcasting Beckn 2.0 RFP to nearest certified hubs...");
-            alert(`🚀 Beckn 2.0 Dispatch Broadcasted!
+            const city = document.getElementById('select-city')?.value || 'mumbai';
+            const data = cityData[city] || cityData.mumbai;
+            const hub = data.hubs[0];
+            const customerPhone = document.getElementById('input-customer-phone')?.value.trim() || "+91 (Customer Contact)";
+            const model = document.getElementById('pulse-device-model')?.innerText || "Connected Android Device";
+            const serial = document.getElementById('pulse-serial-no')?.innerText || "SYSFS-PROBE-01";
+            const health = document.getElementById('pulse-health-badge')?.innerText || "78% Nominal";
+
+            alert(`🚀 Beckn 2.0 Hyperlocal Dispatch Broadcasted!
 
 • Protocol: ONDC Logistics Spec (nic2004:52110)
-• Nearest Node: QuickFix BKC Micro-Hub (ETA: 11 mins)
-• Escrow: ₹0 OEM Warranty Direct Claim
+• Nearest Node: ${hub.name}
+• Address: ${hub.address}
+• Node Support Line: ${hub.phone}
+• Customer Contact: ${customerPhone}
+• Hardware Bound: ${model} (${serial})
+• Degradation Status: ${health}
+• Doorstep Arrival: ~${hub.eta} (Zero Aggregator Fee)
+• Escrow: ₹0 OEM Warranty Direct Settlement
 
-Technician allocated over open network!`);
+Certified technician dispatched over open network!`);
         }
 
         function openWhatsAppDispatch() {
-            const text = encodeURIComponent(`*SpecTrace Diagnostic & Dispatch Pass*
-• Device: OnePlus 11 5G
-• Battery Health: 78% (Free OEM Swap Eligible)
-• GSTIN Verified: Valid (27AAPFU0955K1ZV)
-• Nullifier Hash: ${document.getElementById('nullifier-hash').innerText.slice(0, 16)}
-• Nearest ONDC Hub: QuickFix BKC
-Requesting immediate 15-minute doorstep visit.`);
+            const city = document.getElementById('select-city')?.value || 'mumbai';
+            const data = cityData[city] || cityData.mumbai;
+            const hub = data.hubs[0];
+            const customerPhone = document.getElementById('input-customer-phone')?.value.trim();
+            const model = document.getElementById('pulse-device-model')?.innerText || "Android Device";
+            const serial = document.getElementById('pulse-serial-no')?.innerText || "SERIAL-VERIFIED";
+            const health = document.getElementById('pulse-health-badge')?.innerText || "78% (Degraded)";
+            const gstin = document.getElementById('input-gstin')?.value.trim() || "Retail Tax Invoice Verified";
+            const nullifier = document.getElementById('nullifier-hash')?.innerText.slice(0, 16) || "SHA256-REGISTERED";
+
+            const text = encodeURIComponent(`*SpecTrace Diagnostic & Doorstep Dispatch Pass*
+• Device Model: ${model}
+• Serial / IMEI: ${serial}
+• Battery Health: ${health}
+• Verified Invoice: ${gstin}
+• Anti-Duplicate Nullifier: ${nullifier}
+• Allocated ONDC Hub: ${hub.name}
+• Hub Address: ${hub.address}
+• Hub Support Line: ${hub.phone}
+${customerPhone ? `• Customer Phone: ${customerPhone}\n` : ''}• Doorstep ETA: ~${hub.eta}
+Requesting immediate 15-minute doorstep technician dispatch under Right-to-Repair protocol.`);
             window.open(`https://wa.me/?text=${text}`, '_blank');
         }
 

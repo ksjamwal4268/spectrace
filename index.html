@@ -536,17 +536,11 @@
                 <div class="flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl bg-slate-900/90 border border-slate-700/80 text-xs">
                     <div class="flex items-center gap-2">
                         <span class="text-slate-400 font-semibold"><i class="fa-solid fa-map mr-1 text-cyan-400"></i> Map Source:</span>
-                        <button onclick="switchMapLayer('dark')" id="btn-layer-dark" class="px-2.5 py-1 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold transition-all">
-                            🌙 Cyber Dark
-                        </button>
-                        <button onclick="switchMapLayer('gmaps')" id="btn-layer-gmaps" class="px-2.5 py-1 rounded-lg bg-white/5 text-slate-300 border border-slate-700/80 hover:text-white font-medium transition-all">
+                        <button onclick="switchMapLayer('gmaps')" id="btn-layer-gmaps" class="px-3 py-1 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold transition-all">
                             🗺️ Google Vector
                         </button>
-                        <button onclick="switchMapLayer('gsat')" id="btn-layer-gsat" class="px-2.5 py-1 rounded-lg bg-white/5 text-slate-300 border border-slate-700/80 hover:text-white font-medium transition-all">
+                        <button onclick="switchMapLayer('gsat')" id="btn-layer-gsat" class="px-3 py-1 rounded-lg bg-slate-800 text-slate-300 border border-slate-700/80 hover:text-white font-medium transition-all">
                             🛰️ Satellite
-                        </button>
-                        <button onclick="switchMapLayer('osm')" id="btn-layer-osm" class="px-2.5 py-1 rounded-lg bg-white/5 text-slate-300 border border-slate-700/80 hover:text-white font-medium transition-all">
-                            🌐 Street Map
                         </button>
                     </div>
 
@@ -1047,11 +1041,6 @@ function fillGstin(val) {
         };
 
         const tileProviders = {
-            dark: {
-                url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-                subdomains: 'abcd',
-                maxZoom: 19
-            },
             gmaps: {
                 url: "https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}",
                 subdomains: ['0', '1', '2', '3'],
@@ -1061,11 +1050,6 @@ function fillGstin(val) {
                 url: "https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}",
                 subdomains: ['0', '1', '2', '3'],
                 maxZoom: 20
-            },
-            osm: {
-                url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-                subdomains: ['a', 'b', 'c'],
-                maxZoom: 19
             }
         };
 
@@ -1077,7 +1061,7 @@ function fillGstin(val) {
                 attributionControl: false
             });
 
-            switchMapLayer('dark');
+            switchMapLayer('gmaps');
             renderCityRadar('mumbai');
 
             setTimeout(() => { map.invalidateSize(); }, 300);
@@ -1087,19 +1071,19 @@ function fillGstin(val) {
         function switchMapLayer(type) {
             if (currentTileLayer) map.removeLayer(currentTileLayer);
 
-            const provider = tileProviders[type] || tileProviders.dark;
+            const provider = tileProviders[type] || tileProviders.gmaps;
             currentTileLayer = L.tileLayer(provider.url, {
-                maxZoom: provider.maxZoom || 19,
-                subdomains: provider.subdomains || 'abc'
+                maxZoom: provider.maxZoom || 20,
+                subdomains: provider.subdomains || ['0', '1', '2', '3']
             }).addTo(map);
 
-            ['dark', 'gmaps', 'gsat', 'osm'].forEach(t => {
+            ['gmaps', 'gsat'].forEach(t => {
                 const b = document.getElementById(`btn-layer-${t}`);
                 if (b) {
                     if (t === type) {
-                        b.className = "px-2.5 py-1 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold transition-all";
+                        b.className = "px-3 py-1 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold transition-all";
                     } else {
-                        b.className = "px-2.5 py-1 rounded-lg bg-white/5 text-slate-300 border border-slate-700/80 hover:text-white font-medium transition-all";
+                        b.className = "px-3 py-1 rounded-lg bg-slate-800 text-slate-300 border border-slate-700/80 hover:text-white font-medium transition-all";
                     }
                 }
             });

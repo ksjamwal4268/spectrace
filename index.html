@@ -17,22 +17,28 @@
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        brand: {
-                            cyan: '#06b6d4',
-                            cyanLight: '#22d3ee',
-                            orange: '#ff6b00',
-                            orangeLight: '#ff8533',
-                            orangeDark: '#e05300'
+        const setTwConfig = () => {
+            if (typeof tailwind !== 'undefined') {
+                tailwind.config = {
+                    darkMode: 'class',
+                    theme: {
+                        extend: {
+                            colors: {
+                                brand: {
+                                    cyan: '#06b6d4',
+                                    cyanLight: '#22d3ee',
+                                    orange: '#ff6b00',
+                                    orangeLight: '#ff8533',
+                                    orangeDark: '#e05300'
+                                }
+                            }
                         }
                     }
-                }
+                };
             }
-        }
+        };
+        setTwConfig();
+        window.addEventListener('DOMContentLoaded', setTwConfig);
     </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />

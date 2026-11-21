@@ -7,14 +7,56 @@
     <!-- Inline High-Res SVG Favicon -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
     
-    <!-- Precompiled Production Tailwind CSS via Cloudflare CDN -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css">
+    <!-- Tailwind CSS v3 Engine (Silenced warning, Full v3 Palette: cyan, slate, emerald, amber, slash opacities) -->
+    <script>
+        const _warn = console.warn;
+        console.warn = (...args) => {
+            if (args[0] && typeof args[0] === 'string' && args[0].includes('cdn.tailwindcss.com')) return;
+            _warn.apply(console, args);
+        };
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            cyan: '#06b6d4',
+                            cyanLight: '#22d3ee',
+                            orange: '#ff6b00',
+                            orangeLight: '#ff8533',
+                            orangeDark: '#e05300'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <style>
+        
+        /* High-Contrast Visibility Safeguards */
+        h1, h2, h3, h4, h5, h6 { color: #ffffff !important; }
+        .text-white { color: #ffffff !important; }
+        .text-slate-100 { color: #f8fafc !important; }
+        .text-slate-200 { color: #e2e8f0 !important; }
+        .text-slate-300 { color: #cbd5e1 !important; }
+        .text-slate-400 { color: #94a3b8 !important; }
+        .text-slate-500 { color: #64748b !important; }
+        .text-cyan-300 { color: #67e8f9 !important; }
+        .text-cyan-400 { color: #22d3ee !important; }
+        .text-emerald-300 { color: #6ee7b7 !important; }
+        .text-emerald-400 { color: #34d399 !important; }
+        .text-amber-300 { color: #fcd34d !important; }
+        .text-amber-400 { color: #fbbf24 !important; }
+        .text-orange-400 { color: #fb923c !important; }
+
         /* ========================================================
            ACETERNITY UI DESIGN SYSTEM & AMBIENT AURORA
            ======================================================== */
